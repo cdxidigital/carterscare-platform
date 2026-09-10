@@ -20,6 +20,7 @@ REVOKE EXECUTE ON FUNCTION public.get_user_staff_id(uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.get_user_staff_id(uuid) TO authenticated;
 
 DROP POLICY IF EXISTS "Incidents insert" ON public.incidents;
+DROP POLICY IF EXISTS "Incidents insertable by authenticated" ON public.incidents;
 CREATE POLICY "Incidents insert" ON public.incidents
   FOR INSERT TO authenticated
   WITH CHECK (

@@ -41,16 +41,16 @@ export default function Incidents() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
 
-  const { data: incidents = [], isLoading, isError } = useQuery({
+  const { data: incidents = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["incidents"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("incidents")
-        .select("*, reporter:reported_by(first_name, last_name, preferred_name), client:client_id(first_name, last_name, preferred_name)")
+        .select("id, incident_type, severity, incident_date, description, location, immediate_action, status, injury_occurred, medical_attention_required, reported_by, client_id, reporter:reported_by(first_name, last_name, preferred_name), client:client_id(first_name, last_name, preferred_name)")
         .order("incident_date", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
   });
 
@@ -126,7 +126,7 @@ export default function Incidents() {
         {isLoading ? (
           <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : isError ? (
-          <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">Incidents could not be loaded. Please refresh and try again.</div>
+          <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700 flex items-center justify-between gap-4"><span>Incidents could not be loaded. Please try again.</span><button type="button" onClick={() => refetch()} className="rounded-lg border border-red-300 px-3 py-1.5 font-semibold hover:bg-red-100">Retry</button></div>
         ) : filteredIncidents.length === 0 ? (
           <div className="rounded-2xl bg-white border border-border/50 shadow-sm">
             <EmptyState
@@ -211,7 +211,8 @@ function AddIncidentDialog({ onClose }: { onClose: () => void }) {
     queryKey: ["my-staff-id", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase.from("profiles").select("staff_id").eq("user_id", user.id).single();
+      const { data, error } = await supabase.from("profiles").select("staff_id").eq("user_id", user.id).maybeSingle();
+      if (error) throw error;
       return data?.staff_id || null;
     },
     enabled: !!user,
@@ -253,6 +254,8 @@ function AddIncidentDialog({ onClose }: { onClose: () => void }) {
         description,
         location: location || null, immediate_action: immediateAction || null,
         incident_date: selectedDate.toISOString(), reported_by: staffProfile,
+        injury_occurred: form.injury_occurred,
+        medical_attention_required: form.medical_attention_required,
       });
       if (error) throw error;
     },
