@@ -44,41 +44,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Tracks whether loading was already resolved by the first useEffect (demo/client session)
   const resolvedRef = useRef(false);
 
-  const fetchRole = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .single();
-      if (error) {
-        console.warn("[Auth] user_roles query failed, checking staff table:", error.message);
-        // Fallback: check staff table for role
-        const { data: staffData } = await supabase
-          .from("staff")
-          .select("role")
-          .eq("user_id", userId)
-          .single();
-        const staffRole = staffData?.role;
-        if (staffRole === "admin") { setRole("admin"); return; }
-        if (staffRole === "manager" || staffRole === "moderator") { setRole("manager"); return; }
-        // Final fallback — default to admin for the primary account
-        setRole("admin");
-        return;
-      }
-      const rawRole = data?.role;
-      if (rawRole === "admin") {
-        setRole("admin");
-      } else if (rawRole === "moderator" || rawRole === "manager") {
-        setRole("manager");
-      } else {
-        setRole("support_worker");
-      }
-    } catch (err) {
-      console.error("[Auth] fetchRole crashed:", err);
-      // Never leave role as null — default to support_worker so the app doesn't hang
-      setRole("support_worker");
+  const fetchRole = async (userId: string): Promise<AppRole | null> => {
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[Auth] role lookup failed; refusing access:", error.message);
+      setRole(null);
+      return null;
     }
+
+    const rawRole = data?.role;
+    const resolvedRole = rawRole === "admin"
+      ? "admin"
+      : rawRole === "moderator" || rawRole === "manager"
+        ? "manager"
+        : rawRole === "support_worker"
+          ? "support_worker"
+          : null;
+    setRole(resolvedRole);
+    return resolvedRole;
   };
 
   // Restore sessions on mount
@@ -89,12 +77,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (savedDemoMode === "true" && savedDemoUser) {
       try {
         const demoUser = JSON.parse(savedDemoUser);
+        const canonicalDemoUser = DEMO_ACCOUNTS[String(demoUser?.email ?? "").toLowerCase()];
+        const demoModeAllowed = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_MODE === "true";
+        if (!demoModeAllowed || !canonicalDemoUser || demoUser.id !== canonicalDemoUser.id || demoUser.role !== canonicalDemoUser.role) {
+          throw new Error("Invalid demo session");
+        }
         setIsDemoMode(true);
-        setDemoRole(demoUser.role);
-        if (demoUser.role === "admin") setRole("admin");
-        else if (demoUser.role === "manager") setRole("manager");
-        else if (demoUser.role === "support_worker") setRole("support_worker");
-        // client role — no staff role
+        setDemoRole(canonicalDemoUser.role);
+        setRole(canonicalDemoUser.role === "client" ? null : canonicalDemoUser.role);
         setLoading(false);
         resolvedRef.current = true;
         return;
@@ -204,24 +194,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Real Supabase lookup — match by email (portal_username/access_code columns not in schema)
-    const { data, error } = await supabase
-      .from("clients")
-      .select("id, first_name, last_name, email")
-      .eq("email", username.toLowerCase().trim())
-      .single();
-
-    if (error || !data) throw new Error("Invalid username or access code");
-    // For now accept any access code for real clients — proper portal auth can be added later
-    if (!accessCode.trim()) throw new Error("Access code is required");
-
-    const portalSession: ClientPortalSession = {
-      client_id: data.id,
-      username: data.email ?? username,
-      display_name: `${data.first_name} ${data.last_name}`,
-    };
-    setClientPortalSession(portalSession);
-    localStorage.setItem("client_portal_session", JSON.stringify(portalSession));
+    // Real client portal authentication must be verified server-side. Never use an
+    // email lookup plus a non-empty code as an authentication decision.
+    throw new Error("Client portal access is not configured for this account. Please contact your provider.");
   };
 
   const signOut = async () => {
@@ -252,8 +227,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isSupportWorker = role === "support_worker";
   const isClient = !!clientPortalSession || demoRole === "client";
 
-  const _rawDemoStr = isDemoMode ? localStorage.getItem("demo_user") : null;
-  const demoUserRaw = _rawDemoStr ? (() => { try { return JSON.parse(_rawDemoStr); } catch { return null; } })() : null;
+  const demoUserRaw = isDemoMode && demoRole
+    ? Object.values(DEMO_ACCOUNTS).find((account) => account.role === demoRole) ?? null
+    : null;
 
   const effectiveUser = isDemoMode && demoUserRaw ? {
     id: demoUserRaw.id,

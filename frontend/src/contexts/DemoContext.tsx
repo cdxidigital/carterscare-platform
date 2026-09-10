@@ -134,8 +134,12 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     const savedUser = localStorage.getItem("demo_user");
     if (savedMode === "true" && savedUser) {
       try {
+        const parsed = JSON.parse(savedUser);
+        const canonical = DEMO_ACCOUNTS[String(parsed?.email ?? "").toLowerCase()];
+        const demoModeAllowed = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_MODE === "true";
+        if (!demoModeAllowed || !canonical || parsed.id !== canonical.id || parsed.role !== canonical.role) throw new Error("Invalid demo session");
         setIsDemoMode(true);
-        setDemoUser(JSON.parse(savedUser));
+        setDemoUser(canonical);
       } catch {
         disableDemoMode();
       }

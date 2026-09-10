@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
-import { Plus, AlertTriangle, AlertCircle, Shield, Pill, Loader2, Lock, X } from "lucide-react";
+import { Plus, AlertTriangle, AlertCircle, Shield, Pill, Loader2, Lock, Search, Filter, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,21 +37,33 @@ const SEVERITY_CONFIG: Record<string, { bg: string; text: string; border: string
 
 export default function Incidents() {
   const [showAdd, setShowAdd] = useState(false);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [severityFilter, setSeverityFilter] = useState("all");
 
-  const { data: incidents = [], isLoading } = useQuery({
+  const { data: incidents = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["incidents"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("incidents")
-        .select("*, reporter:reported_by(first_name, last_name, preferred_name), client:client_id(first_name, last_name, preferred_name)")
+        .select("id, incident_type, severity, incident_date, description, location, immediate_action, status, injury_occurred, medical_attention_required, reported_by, client_id, reporter:reported_by(first_name, last_name, preferred_name), client:client_id(first_name, last_name, preferred_name)")
         .order("incident_date", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
   });
 
   const openCount = incidents.filter((i: any) => i.status === "open" || i.status === "investigating").length;
+  const filteredIncidents = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return incidents.filter((incident: any) => {
+      const searchable = [incident.description, incident.location, incident.incident_type, fullName(incident.client)].filter(Boolean).join(" ").toLowerCase();
+      return (!query || searchable.includes(query)) &&
+        (statusFilter === "all" || incident.status === statusFilter) &&
+        (severityFilter === "all" || incident.severity === severityFilter);
+    });
+  }, [incidents, search, statusFilter, severityFilter]);
 
   return (
     <AppLayout title="Incident Reports">
@@ -93,19 +105,39 @@ export default function Incidents() {
 
         {showAdd && <AddIncidentDialog onClose={() => setShowAdd(false)} />}
 
+        <div className="flex flex-col sm:flex-row gap-3 rounded-2xl bg-white border border-border/50 shadow-sm p-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search incidents" aria-label="Search incidents" className="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-red-300" />
+          </div>
+          <div className="flex gap-2">
+            <div className="relative">
+              <Filter className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status" className="h-10 rounded-xl border border-border bg-background pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-red-300">
+                <option value="all">All statuses</option><option value="open">Open</option><option value="investigating">Investigating</option><option value="resolved">Resolved</option><option value="closed">Closed</option>
+              </select>
+            </div>
+            <select value={severityFilter} onChange={(event) => setSeverityFilter(event.target.value)} aria-label="Filter by severity" className="h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-red-300">
+              <option value="all">All severity</option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
+            </select>
+          </div>
+        </div>
+
         {isLoading ? (
           <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-        ) : incidents.length === 0 ? (
+        ) : isError ? (
+          <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700 flex items-center justify-between gap-4"><span>Incidents could not be loaded. Please try again.</span><button type="button" onClick={() => refetch()} className="rounded-lg border border-red-300 px-3 py-1.5 font-semibold hover:bg-red-100">Retry</button></div>
+        ) : filteredIncidents.length === 0 ? (
           <div className="rounded-2xl bg-white border border-border/50 shadow-sm">
             <EmptyState
               icon={AlertTriangle}
-              title="No incidents reported"
-              description='Use "Report Incident" to log a new incident.'
+              title={incidents.length === 0 ? "No incidents reported" : "No matching incidents"}
+              description={incidents.length === 0 ? 'Use "Report Incident" to log a new incident.' : "Try changing your search or filters."}
             />
           </div>
         ) : (
           <div className="space-y-3">
-            {incidents.map((inc: any, i: number) => {
+            {filteredIncidents.map((inc: any, i: number) => {
               const Icon = typeIcons[inc.incident_type] || AlertTriangle;
               const sev = SEVERITY_CONFIG[inc.severity] || SEVERITY_CONFIG.low;
               return (
@@ -179,7 +211,8 @@ function AddIncidentDialog({ onClose }: { onClose: () => void }) {
     queryKey: ["my-staff-id", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase.from("profiles").select("staff_id").eq("user_id", user.id).single();
+      const { data, error } = await supabase.from("profiles").select("staff_id").eq("user_id", user.id).maybeSingle();
+      if (error) throw error;
       return data?.staff_id || null;
     },
     enabled: !!user,
@@ -204,17 +237,25 @@ function AddIncidentDialog({ onClose }: { onClose: () => void }) {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!form.description.trim()) throw new Error("Description is required");
+      const description = form.description.trim();
+      const location = form.location.trim();
+      const immediateAction = form.immediate_action.trim();
+      const selectedDate = new Date(`${form.incident_date}T00:00:00`);
+      if (!description) throw new Error("Description is required");
+      if (description.length > 5000) throw new Error("Description must be 5,000 characters or fewer");
+      if (location.length > 300 || immediateAction.length > 3000) throw new Error("One or more fields are too long");
+      if (!form.incident_date || Number.isNaN(selectedDate.getTime()) || selectedDate > new Date()) throw new Error("Incident date cannot be in the future");
       if (!staffProfile) throw new Error("Your account is not linked to a staff record");
       if (incidentCategory === "client" && !form.client_id) throw new Error("Please select a client for client-related incidents");
       
       const { error } = await supabase.from("incidents").insert({
         incident_type: form.incident_type, severity: form.severity,
-        client_id: incidentCategory === "client" ? form.client_id : null, 
-        description: form.description.trim(),
-        location: form.location.trim() || null, immediate_action: form.immediate_action.trim() || null,
-        incident_date: form.incident_date, reported_by: staffProfile, created_by: user?.id,
-        injury_occurred: form.injury_occurred, medical_attention_required: form.medical_attention_required,
+        client_id: incidentCategory === "client" ? form.client_id : null,
+        description,
+        location: location || null, immediate_action: immediateAction || null,
+        incident_date: selectedDate.toISOString(), reported_by: staffProfile,
+        injury_occurred: form.injury_occurred,
+        medical_attention_required: form.medical_attention_required,
       });
       if (error) throw error;
     },
@@ -225,7 +266,7 @@ function AddIncidentDialog({ onClose }: { onClose: () => void }) {
       queryClient.invalidateQueries({ queryKey: ["notif-incidents"] });
       onClose();
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message.startsWith("Description") || err.message.startsWith("Location") || err.message.startsWith("Incident") || err.message.startsWith("Please") || err.message.startsWith("Your account") ? err.message : "Incident could not be reported. Please try again."),
   });
 
   return (
@@ -302,13 +343,13 @@ function AddIncidentDialog({ onClose }: { onClose: () => void }) {
           <FormInput type="date" value={form.incident_date} onChange={(v) => setForm({ ...form, incident_date: v })} />
         </FormField>
         <FormField label="Location">
-          <FormInput value={form.location} onChange={(v) => setForm({ ...form, location: v })} placeholder="Where did it happen?" />
+          <FormInput value={form.location} onChange={(v) => setForm({ ...form, location: v })} placeholder="Where did it happen?" maxLength={300} />
         </FormField>
         <FormField label="Description" required>
-          <FormTextarea value={form.description} onChange={(v) => setForm({ ...form, description: v })} placeholder="Describe what happened..." rows={3} />
+          <FormTextarea value={form.description} onChange={(v) => setForm({ ...form, description: v })} placeholder="Describe what happened..." rows={3} maxLength={5000} />
         </FormField>
         <FormField label="Immediate Action Taken">
-          <FormTextarea value={form.immediate_action} onChange={(v) => setForm({ ...form, immediate_action: v })} placeholder="What was done immediately?" rows={2} />
+          <FormTextarea value={form.immediate_action} onChange={(v) => setForm({ ...form, immediate_action: v })} placeholder="What was done immediately?" rows={2} maxLength={3000} />
         </FormField>
         <div className="flex gap-6">
           <label className="flex items-center gap-2.5 cursor-pointer">
