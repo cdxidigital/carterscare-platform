@@ -1,9 +1,19 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.98.0";
 
+const allowedOrigin = Deno.env.get("APP_ORIGIN") ?? "https://staff.carters.care";
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": allowedOrigin,
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Vary": "Origin",
 };
+
+const ROLES = new Set(["admin", "manager", "support_worker"]);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const EMAIL_RE = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+const json = (body: Record<string, unknown>, status = 200) => new Response(JSON.stringify(body), {
+  status,
+  headers: { ...corsHeaders, "Content-Type": "application/json" },
+});
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -56,6 +66,15 @@ Deno.serve(async (req) => {
     if (action === "invite") {
       const { email, password, display_name, role, staff_id } = body;
 
+      const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+      const normalizedName = typeof display_name === "string" ? display_name.trim().slice(0, 100) : "";
+      if (!EMAIL_RE.test(normalizedEmail) || !normalizedName || typeof password !== "string" || password.length < 12 || password.length > 128 || typeof role !== "string" || !ROLES.has(role)) {
+        return json({ error: "Invalid user details" }, 400);
+      }
+      if (staff_id !== undefined && staff_id !== null && (typeof staff_id !== "string" || !UUID_RE.test(staff_id))) {
+        return json({ error: "Invalid staff link" }, 400);
+      }
+
       if (!email || !password || !display_name || !role) {
         return new Response(JSON.stringify({ error: "Missing required fields" }), {
           status: 400,
@@ -65,10 +84,10 @@ Deno.serve(async (req) => {
 
       // Create user with admin API
       const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-        email,
+        email: normalizedEmail,
         password,
         email_confirm: true,
-        user_metadata: { display_name },
+        user_metadata: { display_name: normalizedName },
       });
 
       if (createError) {
@@ -139,6 +158,7 @@ Deno.serve(async (req) => {
 
     if (action === "link_staff") {
       const { user_id, staff_id } = body;
+      if (typeof user_id !== "string" || !UUID_RE.test(user_id) || (staff_id !== undefined && staff_id !== null && (typeof staff_id !== "string" || !UUID_RE.test(staff_id)))) { return json({ error: "Invalid user or staff ID" }, 400); }
       if (!user_id) {
         return new Response(JSON.stringify({ error: "Missing user_id" }), {
           status: 400,
@@ -176,6 +196,9 @@ Deno.serve(async (req) => {
 
     if (action === "update_role") {
       const { user_id, role } = body;
+      if (typeof user_id !== "string" || !UUID_RE.test(user_id) || typeof role !== "string" || !ROLES.has(role)) {
+        return json({ error: "Invalid user or role" }, 400);
+      }
       if (!user_id || !role) {
         return new Response(JSON.stringify({ error: "Missing user_id or role" }), {
           status: 400,
@@ -265,6 +288,8 @@ Deno.serve(async (req) => {
         });
       }
 
+      if (!UUID_RE.test(user_id)) return json({ error: "Invalid user ID" }, 400);
+      await adminClient.auth.admin.signOut(user_id, "global");
       await adminClient.from("user_roles").delete().eq("user_id", user_id);
       await adminClient.from("profiles").delete().eq("user_id", user_id);
       const { error } = await adminClient.auth.admin.deleteUser(user_id);
@@ -280,9 +305,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("manage-users failed:", err);
+    return json({ error: "Unable to complete that request" }, 500);
   }
 });
