@@ -118,6 +118,86 @@ Keep the core platform simple and offer optional modules only when they have a c
 
 Do not charge separately for core compliance, case notes, incidents, timesheets or client records. Those features are the product’s main differentiation and should be used to justify the subscription.
 
+## Recommended profit-sharing model
+
+Use a **waterfall model** rather than splitting gross subscription revenue. This protects the business from hosting, payment, support, AI, insurance, tax and implementation costs, while giving each party a transparent share of the commercial upside.
+
+### Step 1: Calculate distributable profit
+
+For each customer and billing period:
+
+```text
+Collected revenue excluding GST
+− refunds, credits and bad debt
+− payment processing and collection fees
+− hosting, database, AI and messaging costs
+− customer-specific third-party licences
+− agreed customer support and implementation costs
+− sales commission already paid
+= Distributable profit
+```
+
+Do not deduct general business expenses twice. Maintain a monthly management report showing revenue, direct costs, deductions and the resulting distributable profit.
+
+### Step 2: Split distributable profit
+
+Recommended starting allocation:
+
+| Party | Share of distributable profit | Commercial rationale |
+|---|---:|---|
+| **Carters Care Group** | **50%** | Product owner, sector operator, customer reference site, commercial risk and ongoing business direction |
+| **CDXI** | **30%** | Platform development, engineering, maintenance, security, releases and technical delivery |
+| **Sales consultant** | **20%** | Customer acquisition, qualified opportunities, demonstrations, proposal support and account conversion |
+
+This allocation applies to customers materially sourced or converted by the sales consultant. For accounts generated entirely through Carters Care Group’s existing relationships or inbound marketing, the sales consultant share should be reduced or omitted by agreement before the opportunity is pursued.
+
+### Sales consultant protection and limits
+
+The sales consultant’s share should be paid only on **cash actually collected**, not signed contracts or invoices. It should:
+
+- apply for the first **24 months** of each customer relationship;
+- continue only while the consultant remains actively responsible for the agreed sales/account duties;
+- exclude GST, refunds, credits, bad debt, implementation pass-through costs and third-party charges;
+- be recalculated if a customer downgrades, pauses or materially changes scope;
+- stop when the customer cancels, subject to a 30-day reconciliation of amounts already collected;
+- be documented per account in a deal-registration schedule to avoid disputes over lead ownership.
+
+After the initial 24-month period, the customer’s distributable profit can be split **60% to Carters Care Group and 40% to CDXI**, unless the parties agree that the consultant continues to provide substantive account-management or renewal services. If that ongoing work is required, reserve up to 10% for the consultant and allocate the remaining 90% between Carters Care Group and CDXI at 55%/45%.
+
+### Worked example
+
+For a Professional customer paying **$399/month excluding GST**, assume the following monthly deductions:
+
+| Item | Amount |
+|---|---:|
+| Collected subscription revenue | $399.00 |
+| Direct platform, payment, AI and support costs | ($99.00) |
+| **Distributable profit** | **$300.00** |
+
+The initial 24-month allocation would be:
+
+- Carters Care Group: **$150.00**
+- CDXI: **$90.00**
+- Sales consultant: **$60.00**
+
+These figures are illustrative. The agreement should use the actual monthly cost ledger and should be reviewed if support intensity, AI usage or implementation requirements change materially.
+
+### Governance and contract terms
+
+Put the arrangement in a written commercial agreement covering:
+
+- definitions of revenue, direct costs and distributable profit;
+- whether each party receives payment as a contractor, company or shareholder distribution;
+- GST, income tax, superannuation and withholding responsibilities;
+- ownership and licensing of the platform, source code, data and customer relationships;
+- approval rights for discounts, refunds, free periods and non-standard contracts;
+- monthly statements, payment timing and audit rights;
+- treatment of renewals, referrals, channel partners and house accounts;
+- confidentiality, privacy, restraint, conflicts and termination obligations;
+- dispute resolution and what happens to customer accounts after termination.
+
+Have an Australian commercial solicitor and accountant review the agreement before customer launch. This is a commercial framework, not legal, tax or financial advice.
+
 ## Commercial terms
 
 - Offer a **14-day guided trial** with sample data and no credit card requirement.
