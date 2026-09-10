@@ -141,19 +141,21 @@ Do not deduct general business expenses twice. Maintain a monthly management rep
 
 ### Step 2: Split distributable profit
 
-Recommended starting allocation:
+Because **CDXI owns the platform and its intellectual property**, while **Carters Care Group (CCG) owns the commercial brand, sector relationship and go-to-market activity**, the recommended starting allocation is:
 
 | Party | Share of distributable profit | Commercial rationale |
 |---|---:|---|
-| **Carters Care Group** | **50%** | Product owner, sector operator, customer reference site, commercial risk and ongoing business direction |
-| **CDXI** | **30%** | Platform development, engineering, maintenance, security, releases and technical delivery |
-| **Sales consultant** | **20%** | Customer acquisition, qualified opportunities, demonstrations, proposal support and account conversion |
+| **CDXI** | **50%** | Platform owner, intellectual property, engineering, hosting oversight, maintenance, security, releases and technical delivery |
+| **Carters Care Group** | **50%** | Brand owner/licensor, sector positioning, reference customer, customer relationships, commercial direction and market development |
+| **Sales consultant** | **Paid by CCG from CCG’s share** | The consultant works for CCG, so their commission is a CCG selling expense rather than a third-party claim on CDXI’s platform-owner share |
 
-This allocation applies to customers materially sourced or converted by the sales consultant. For accounts generated entirely through Carters Care Group’s existing relationships or inbound marketing, the sales consultant share should be reduced or omitted by agreement before the opportunity is pursued.
+The consultant should not receive a separate percentage of total distributable profit. CCG should pay the consultant from CCG’s 50% allocation under a separate employment or contractor agreement. This keeps ownership, customer responsibility and payment obligations clear.
 
-### Sales consultant protection and limits
+### Sales consultant commission
 
-The sales consultant’s share should be paid only on **cash actually collected**, not signed contracts or invoices. It should:
+As a starting point, CCG may allocate **20% of CCG’s collected share** to the consultant for new customers they materially source and convert. This is economically equivalent to 10% of total distributable profit before any CCG-specific costs, while preserving CDXI’s 50% allocation.
+
+The consultant’s commission should be paid only on **cash actually collected**, not signed contracts or invoices. It should:
 
 - apply for the first **24 months** of each customer relationship;
 - continue only while the consultant remains actively responsible for the agreed sales/account duties;
@@ -162,7 +164,16 @@ The sales consultant’s share should be paid only on **cash actually collected*
 - stop when the customer cancels, subject to a 30-day reconciliation of amounts already collected;
 - be documented per account in a deal-registration schedule to avoid disputes over lead ownership.
 
-After the initial 24-month period, the customer’s distributable profit can be split **60% to Carters Care Group and 40% to CDXI**, unless the parties agree that the consultant continues to provide substantive account-management or renewal services. If that ongoing work is required, reserve up to 10% for the consultant and allocate the remaining 90% between Carters Care Group and CDXI at 55%/45%.
+For accounts generated entirely through CCG’s existing relationships or inbound marketing, CCG may apply a lower commission or no commission. After the initial 24-month period, the consultant commission should end unless the consultant continues to provide substantive account-management or renewal services under a renewed written agreement.
+
+### Ownership and commercial responsibilities
+
+- CDXI retains ownership of the platform, source code, technical architecture, product roadmap authority and reusable intellectual property.
+- CCG owns or controls its business name, branding, sector marketing assets, customer relationships and agreed brand licence rights.
+- The customer contract should clearly identify the contracting entity, platform licence, support responsibilities, data-processing roles and liability allocation.
+- CCG must not grant rights to the source code or reusable CDXI intellectual property without CDXI’s written approval.
+- CDXI must not use CCG’s branding or customer case studies outside the agreed licence without CCG’s written approval.
+- The parties should agree who approves discounts, refunds, free trials, implementation commitments and non-standard promises before a proposal is issued.
 
 ### Worked example
 
@@ -174,11 +185,12 @@ For a Professional customer paying **$399/month excluding GST**, assume the foll
 | Direct platform, payment, AI and support costs | ($99.00) |
 | **Distributable profit** | **$300.00** |
 
-The initial 24-month allocation would be:
+The initial allocation would be:
 
+- CDXI: **$150.00**
 - Carters Care Group: **$150.00**
-- CDXI: **$90.00**
-- Sales consultant: **$60.00**
+- Sales consultant commission: **$30.00**, paid by CCG from its $150.00 share
+- CCG retained after consultant commission: **$120.00**
 
 These figures are illustrative. The agreement should use the actual monthly cost ledger and should be reviewed if support intensity, AI usage or implementation requirements change materially.
 
